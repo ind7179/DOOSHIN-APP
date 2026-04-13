@@ -2,232 +2,52 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>두신공수분석 PRO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>(주)두신이엔지 공수분석</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; color: #1e293b; -webkit-tap-highlight-color: transparent; }
-        .dashboard-card { background: white; border-radius: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .matrix-table th { background-color: #f8fafc; font-weight: 800; white-space: nowrap; padding: 12px 8px; font-size: 13px; position: sticky; top: 0; }
-        .matrix-table td { padding: 10px 6px; font-size: 13px; border: 1px solid #edf2f7; text-align: center; }
-        input, select, button { min-height: 48px; font-size: 16px !important; }
+        body { font-family: sans-serif; padding: 15px; background-color: #f8f9fa; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: center; font-size: 14px; }
+        th { background-color: #1e293b; color: white; font-weight: bold; }
+        tr:nth-child(even) { background-color: #fcfcfc; }
+        .logo { display: block; margin: 10px auto; width: 120px; }
     </style>
 </head>
-<body class="pb-10">
-
-    <nav class="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-lg">
-        <div class="flex justify-between items-center">
-            <h1 class="text-lg font-black tracking-tighter">(주)두신이엔지 공수분석</h1>
-            <button onclick="document.getElementById('csvFile').click()" class="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold">
-                📁 파일 선택
-            </button>
-        </div>
-        <div id="avgHintContainer" class="hidden mt-2 bg-amber-500/20 border border-amber-500/30 p-2 rounded-lg text-center">
-            <span class="text-amber-400 text-xs font-bold" id="avgHintText"></span>
-        </div>
-        <input type="file" id="csvFile" accept=".csv" class="hidden">
-    </nav>
-
-    <main class="p-3 space-y-4">
-        <section class="dashboard-card p-4 space-y-3">
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 ml-1">연도</label>
-                    <select id="selYear" onchange="updateCompanyList()" class="w-full bg-slate-50 border-0 rounded-lg px-2 font-bold"></select>
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 ml-1">월</label>
-                    <select id="selMonth" onchange="updateCompanyList()" class="w-full bg-slate-50 border-0 rounded-lg px-2 font-bold">
-                        <option value="">전체</option>
-                        <script>for(let i=1;i<=12;i++) document.write(`<option value="${i}">${i}월</option>`)</script>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 ml-1">업체명</label>
-                <select id="selCompany" onchange="updateProjectList()" class="w-full bg-slate-50 border-0 rounded-lg px-2 font-bold">
-                    <option value="">업체 선택 (전체)</option>
-                </select>
-            </div>
-            <div>
-                <label class="text-[10px] font-bold text-slate-400 ml-1">프로젝트</label>
-                <select id="selProject" onchange="runAnalysis()" class="w-full bg-white border-2 border-amber-500 rounded-lg px-2 font-black text-slate-900 shadow-sm">
-                    <option value="">프로젝트 선택</option>
-                </select>
-            </div>
-        </section>
-
-        <div id="analysisView" class="hidden space-y-4">
-            <div class="grid grid-cols-2 gap-2">
-                <div class="dashboard-card p-3 border-l-4 border-l-amber-500">
-                    <p class="text-[10px] font-bold text-slate-400">총 투입 공수</p>
-                    <div class="flex items-baseline gap-1 mt-1">
-                        <span id="viewTotalMD" class="text-2xl font-black text-amber-600">0.0</span>
-                        <span class="text-[10px] font-bold text-slate-400">MD</span>
-                    </div>
-                </div>
-                <div class="dashboard-card p-3 border-l-4 border-l-emerald-500">
-                    <p class="text-[10px] font-bold text-slate-400">현재 투입 비용</p>
-                    <div class="flex items-baseline gap-1 mt-1">
-                        <span class="text-xs font-bold text-emerald-600">₩</span>
-                        <span id="viewTotalCost" class="text-xl font-black text-emerald-600">0</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-card flex flex-col">
-                <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <h4 class="text-sm font-black text-slate-800 uppercase">공정별 상세 분석</h4>
-                    <div class="flex bg-slate-200 p-1 rounded-lg scale-90">
-                        <button onclick="toggleUnit('h')" id="btnUnitH" class="px-3 py-1 text-[10px] font-bold rounded-md bg-white shadow-sm">시간</button>
-                        <button onclick="toggleUnit('md')" id="btnUnitMD" class="px-3 py-1 text-[10px] font-bold rounded-md text-slate-500 ml-1">공수</button>
-                    </div>
-                </div>
-                <div class="overflow-x-auto p-2" id="matrixContainer"></div>
-            </div>
-        </div>
-
-        <div id="emptyState" class="py-20 text-center dashboard-card border-dashed border-2 bg-transparent text-slate-400 font-bold italic uppercase">
-            데이터 파일을 업로드 해주세요
-        </div>
-    </main>
+<body>
+    <img src="https://raw.githubusercontent.com/ind7179/DOOSHIN-APP/main/dooshin-logo.png" class="logo">
+    <h2 style="text-align:center; color:#333;">현장 공수 현황</h2>
+    <div id="table-container">데이터를 불러오는 중...</div>
 
     <script>
-        let rawData = [];
-        let displayUnit = 'h';
-        let currentProjectData = [];
+        // 파일 이름을 'data.csv'로 고정했습니다.
+        const fileName = 'data.csv?v=' + new Date().getTime(); // v=시간을 붙여서 '무조건 최신'으로 가져오게 함
 
-        function normalizeProjName(name) { return name ? name.replace(/HKJ/g, "").replace(/[\s\-_]/g, "").toUpperCase() : ""; }
-        function extractCoreKey(name, clientName = "") {
-            const normalized = normalizeProjName(name);
-            if (clientName === "대한중전기") {
-                if (normalized.includes("COLUMN") || normalized.includes("직관")) return "DAEHAN_JIK";
-                if (normalized.includes("DISCHARGE") || normalized.includes("곡관")) return "DAEHAN_GOK";
-                return "DAEHAN_ETC";
-            }
-            const match = normalized.match(/[A-Z]+[0-9]+/);
-            return match ? match[0] : normalized.substring(0, 5);
-        }
-
-        document.getElementById('csvFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const rows = evt.target.result.split(/\r?\n/).filter(row => row.trim() !== "");
-                rawData = rows.slice(1).map(r => {
-                    const c = r.split(',');
-                    if (c.length < 7) return null;
-                    const d = new Date(c[0].trim());
-                    return {
-                        date: c[0].trim(), type: c[1]?.trim() || '기타', client: c[2]?.trim(), project: c[3]?.trim(),
-                        h_reg: parseFloat(c[4]) || 0, h_over: parseFloat(c[5]) || 0,
-                        cost: parseInt(c[6]?.replace(/[^0-9]/g, "")) || 0, worker: c[7]?.trim(),
-                        year: d.getFullYear().toString(), month: (d.getMonth() + 1).toString(), dateObj: d,
-                        coreKey: extractCoreKey(c[3]?.trim(), c[2]?.trim())
-                    };
-                }).filter(i => i !== null);
-                
-                const years = [...new Set(rawData.map(i => i.year))].sort((a,b) => b-a);
-                const yearSel = document.getElementById('selYear');
-                yearSel.innerHTML = '<option value="">전체</option>';
-                years.forEach(y => yearSel.add(new Option(y + '년', y)));
-                updateCompanyList();
-            };
-            reader.readAsText(file, 'euc-kr');
-        });
-
-        function updateCompanyList() {
-            const year = document.getElementById('selYear').value;
-            const month = document.getElementById('selMonth').value;
-            let filtered = rawData;
-            if (year) filtered = filtered.filter(i => i.year === year);
-            if (month) filtered = filtered.filter(i => i.month === month);
-            
-            const companies = [...new Set(filtered.map(i => i.client))].sort();
-            const compSel = document.getElementById('selCompany');
-            compSel.innerHTML = '<option value="">업체 선택 (전체)</option>';
-            companies.forEach(c => compSel.add(new Option(c, c)));
-            updateProjectList();
-        }
-
-        function updateProjectList() {
-            const year = document.getElementById('selYear').value;
-            const month = document.getElementById('selMonth').value;
-            const company = document.getElementById('selCompany').value;
-            
-            let filtered = rawData;
-            if (year) filtered = filtered.filter(i => i.year === year);
-            if (month) filtered = filtered.filter(i => i.month === month);
-            if (company) filtered = filtered.filter(i => i.client === company);
-            
-            const projects = [...new Set(filtered.map(i => i.project))].sort();
-            const projSel = document.getElementById('selProject');
-            projSel.innerHTML = '<option value="">프로젝트 선택</option>';
-            projects.forEach(p => projSel.add(new Option(p, p)));
-        }
-
-        function runAnalysis() {
-            const project = document.getElementById('selProject').value;
-            if (!project) return;
-            
-            currentProjectData = rawData.filter(i => i.project === project).sort((a,b) => a.dateObj - b.dateObj);
-            const company = currentProjectData[0].client;
-            
-            // 평균 계산
-            const coreKey = extractCoreKey(project, company);
-            const related = rawData.filter(i => i.coreKey === coreKey);
-            const uniqueProjs = [...new Set(related.map(i => i.project))];
-            if(uniqueProjs.length > 1) {
-                const totalH = related.reduce((acc, curr) => acc + curr.h_reg + curr.h_over, 0);
-                const avgH = totalH / uniqueProjs.length;
-                document.getElementById('avgHintContainer').classList.remove('hidden');
-                document.getElementById('avgHintText').textContent = `💡 계열 평균: ${parseInt(avgH)}시간 (${uniqueProjs.length}개 모델)`;
-            } else {
-                document.getElementById('avgHintContainer').classList.add('hidden');
-            }
-
-            let tH = 0, tC = 0;
-            currentProjectData.forEach(i => { tH += (i.h_reg + i.h_over); tC += i.cost; });
-            document.getElementById('viewTotalMD').textContent = (tH / 8).toFixed(1);
-            document.getElementById('viewTotalCost').textContent = tC.toLocaleString();
-
-            renderMatrix();
-            document.getElementById('emptyState').classList.add('hidden');
-            document.getElementById('analysisView').classList.remove('hidden');
-        }
-
-        function renderMatrix() {
-            const container = document.getElementById('matrixContainer');
-            const processes = [...new Set(currentProjectData.map(i => i.type))].sort();
-            const workers = [...new Set(currentProjectData.map(i => i.worker))].sort();
-            
-            let html = `<table class="matrix-table w-full"><thead><tr><th>공정</th>`;
-            workers.forEach(w => html += `<th>${w}</th>`);
-            html += `<th>합계</th></tr></thead><tbody>`;
-
-            processes.forEach(p => {
-                let pSum = 0;
-                html += `<tr><td class="font-bold bg-slate-50">${p}</td>`;
-                workers.forEach(w => {
-                    const h = currentProjectData.filter(i => i.type === p && i.worker === w).reduce((acc, curr) => acc + curr.h_reg + curr.h_over, 0);
-                    pSum += h;
-                    const val = displayUnit === 'h' ? h : (h/8).toFixed(1);
-                    html += `<td>${h > 0 ? val : '-'}</td>`;
+        Papa.parse(fileName, {
+            download: true,
+            header: true,
+            complete: function(results) {
+                let data = results.data;
+                if (!data || data.length === 0) {
+                    document.getElementById('table-container').innerHTML = "표시할 데이터가 없습니다.";
+                    return;
+                }
+                let html = '<table><thead><tr>';
+                Object.keys(data[0]).forEach(key => { html += `<th>${key}</th>`; });
+                html += '</tr></thead><tbody>';
+                data.forEach(row => {
+                    if(row[Object.keys(row)[0]]) {
+                        html += '<tr>';
+                        Object.values(row).forEach(val => { html += `<td>${val}</td>`; });
+                        html += '</tr>';
+                    }
                 });
-                html += `<td class="font-black text-indigo-600">${displayUnit === 'h' ? pSum : (pSum/8).toFixed(1)}</td></tr>`;
-            });
-            html += `</tbody></table>`;
-            container.innerHTML = html;
-        }
-
-        function toggleUnit(unit) {
-            displayUnit = unit;
-            document.getElementById('btnUnitH').className = unit === 'h' ? 'px-3 py-1 text-[10px] font-bold rounded-md bg-white shadow-sm' : 'px-3 py-1 text-[10px] font-bold rounded-md text-slate-500 ml-1';
-            document.getElementById('btnUnitMD').className = unit === 'md' ? 'px-3 py-1 text-[10px] font-bold rounded-md bg-white shadow-sm ml-1' : 'px-3 py-1 text-[10px] font-bold rounded-md text-slate-500 ml-1';
-            if (currentProjectData.length > 0) renderMatrix();
-        }
+                html += '</tbody></table>';
+                document.getElementById('table-container').innerHTML = html;
+            },
+            error: function() {
+                document.getElementById('table-container').innerHTML = "data.csv 파일을 찾을 수 없습니다.";
+            }
+        });
     </script>
 </body>
 </html>
