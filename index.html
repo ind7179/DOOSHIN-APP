@@ -2,44 +2,309 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>두신이엔지 공수분석</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로젝트 정밀 분석 시스템 V3.9.8 - (주)두신이엔지</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 15px; background-color: #f4f4f4; }
-        table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        th { background-color: #1e293b; color: white; }
-        .logo { display: block; margin: 0 auto 10px; width: 100px; }
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; color: #334155; }
+        .dashboard-card { background: white; border-radius: 1.25rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; overflow: hidden; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .matrix-table th, .matrix-table td { border: 1px solid #e2e8f0; min-width:90px; text-align: center; }
+        .matrix-table th { background-color: #f8fafc; font-weight: 900; color: #1e293b; padding: 16px 8px; font-size: 15px; position: sticky; top: 0; z-index: 10; }
+        .matrix-table td { padding: 12px 8px; vertical-align: middle; font-size: 14px; }
+        .cell-highlight { background-color: #fffbeb; }
+        .avg-label-box { background-color: #fff7ed; border: 1px solid #ffedd5; border-radius: 0.5rem; padding: 4px 6px; margin-top: 6px; }
+        .avg-value-text { font-size: 13px; color: #ea580c; font-weight: 800; }
+        .history-table th { background-color: #f1f5f9; color: #475569; font-size: 12px; padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        .history-table td { padding: 12px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+        select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1rem; }
     </style>
 </head>
-<body>
-    <h2 style="text-align:center;">현장 공수 현황</h2>
-    <div id="table-container">데이터를 불러오는 중...</div>
+<body class="pb-20">
+
+    <nav class="bg-slate-900 text-white py-4 px-6 sticky top-0 z-50 shadow-2xl">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <img src="https://raw.githubusercontent.com/ind7179/DOOSHIN-APP/main/dooshin-logo.png" style="height:40px; margin-right:10px;">
+                <div class="bg-amber-500 px-3 py-1 rounded-xl text-slate-900 font-black">V3.9.8</div>
+                <h1 class="text-xl font-black tracking-tight">(주)두신이엔지 공정 분석기</h1>
+            </div>
+            <div id="avgHintContainer" class="hidden flex items-center bg-amber-500/10 border border-amber-500/30 px-4 py-2 rounded-xl">
+                <span class="text-amber-500 text-sm font-black italic" id="avgHintText"></span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 mt-8 space-y-6">
+        <section class="dashboard-card p-6 border-t-4 border-t-amber-500 bg-slate-50">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black text-slate-400 uppercase italic">연도</label>
+                    <select id="selYear" onchange="updateProjectList()" class="w-full h-12 px-3 bg-white border-2 border-slate-200 rounded-xl text-lg font-black outline-none shadow-sm"></select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black text-slate-400 uppercase italic">월</label>
+                    <select id="selMonth" onchange="updateProjectList()" class="w-full h-12 px-3 bg-white border-2 border-slate-200 rounded-xl text-lg font-black outline-none shadow-sm">
+                        <option value="">전체 월</option>
+                        <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option><option value="4">4월</option>
+                        <option value="5">5월</option><option value="6">6월</option><option value="7">7월</option><option value="8">8월</option>
+                        <option value="9">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black text-slate-400 uppercase italic">업체명</label>
+                    <select id="selCompany" onchange="updateProjectList()" class="w-full h-12 px-3 bg-white border-2 border-slate-200 rounded-xl text-md font-bold outline-none shadow-sm"></select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black text-slate-400 uppercase italic">프로젝트</label>
+                    <select id="selProject" onchange="runAnalysis()" class="w-full h-12 px-3 bg-white border-2 border-amber-500 rounded-xl text-md font-black text-slate-900 outline-none shadow-md ring-2 ring-amber-500/10"></select>
+                </div>
+            </div>
+        </section>
+
+        <div id="analysisView" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="dashboard-card p-4 border-l-8 border-l-slate-800 flex items-center justify-between">
+                    <div><p class="text-[10px] text-slate-400 font-bold mb-1">총 중량 (kg)</p></div>
+                    <input type="text" id="inputWeight" onblur="handleCalc('inputWeight')" onkeydown="if(event.key==='Enter') handleCalc('inputWeight')" placeholder="중량 입력" class="w-1/2 text-right text-3xl font-black text-slate-800 outline-none bg-transparent border-b-2 border-slate-100 focus:border-amber-500">
+                </div>
+                <div class="dashboard-card p-4 border-l-8 border-l-blue-600 flex items-center justify-between">
+                    <div><p class="text-[10px] text-blue-400 font-bold mb-1">목표 원가 (₩)</p></div>
+                    <input type="text" id="inputBudget" onblur="handleCalc('inputBudget')" onkeydown="if(event.key==='Enter') handleCalc('inputBudget')" placeholder="예산 입력" class="w-1/2 text-right text-3xl font-black text-blue-600 outline-none bg-transparent border-b-2 border-blue-50 focus:border-blue-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="dashboard-card p-5 border-t-4 border-t-purple-500">
+                    <p class="text-[10px] font-black text-slate-400 uppercase italic">작업 기간</p>
+                    <div id="viewPeriod" class="text-xl font-black text-slate-900 mt-2">0000.00.00 ~ 0000.00.00</div>
+                    <div id="viewWorkDays" class="text-sm font-bold text-purple-600 mt-0.5">실제 작업: 0일</div>
+                </div>
+                <div class="dashboard-card p-5 border-t-4 border-t-amber-500">
+                    <p class="text-[10px] font-black text-slate-400 uppercase italic">총 투입 시간</p>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <span id="viewTotalHours" class="text-5xl font-black text-slate-900">0</span>
+                        <span class="text-sm font-bold text-slate-400">시간</span>
+                        <span id="viewTotalMD" class="text-lg font-black text-amber-600 ml-2">0.0</span><span class="text-[10px] font-bold text-amber-500">MD</span>
+                    </div>
+                </div>
+                <div class="dashboard-card p-5 border-t-4 border-t-emerald-500">
+                    <p class="text-[10px] font-black text-slate-400 uppercase italic">총 투입 비용 / 수익률</p>
+                    <div class="text-4xl font-black text-emerald-600 mt-1">₩ <span id="viewTotalCost">0</span></div>
+                    <div id="viewProfitLoss" class="text-xl font-black mt-2">₩ 0</div>
+                </div>
+            </div>
+
+            <div class="dashboard-card flex flex-col min-h-[400px]">
+                <div class="p-6 bg-slate-50/50 flex justify-between items-center border-b">
+                    <h4 class="text-lg font-black text-slate-800 italic uppercase">공정별 작업 분석 매트릭스</h4>
+                    <div class="flex bg-slate-200 p-1 rounded-xl">
+                        <button onclick="toggleUnit('h')" id="btnUnitH" class="px-6 py-2 text-xs font-black rounded-lg bg-white shadow-sm">시간(h)</button>
+                        <button onclick="toggleUnit('md')" id="btnUnitMD" class="px-6 py-2 text-xs font-black rounded-lg text-slate-500 ml-1">공수(MD)</button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-auto custom-scroll p-4" id="matrixContainer"></div>
+            </div>
+
+            <div class="dashboard-card flex flex-col">
+                <div class="p-6 bg-slate-50/50 border-b">
+                    <h4 class="text-lg font-black text-slate-800 italic uppercase">프로젝트 상세 작업 이력</h4>
+                </div>
+                <div class="overflow-auto custom-scroll max-h-[500px]">
+                    <table class="history-table w-full">
+                        <thead>
+                            <tr><th>날짜</th><th>작업자</th><th>공정</th><th>정시</th><th>연장</th><th>총 시간</th><th>발생 비용</th></tr>
+                        </thead>
+                        <tbody id="historyBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="emptyState" class="py-40 text-center dashboard-card border-dashed border-4 text-slate-300 font-black italic uppercase">
+            데이터를 불러오는 중입니다...
+        </div>
+    </main>
 
     <script>
-        Papa.parse('data.csv', {
-            download: true,
-            header: true,
-            encoding: "EUC-KR", // 사장님, 여기가 핵심입니다! 한글 안 깨지게 잡아주는 설정이에요.
-            complete: function(results) {
-                let data = results.data;
-                let html = '<table><thead><tr>';
-                Object.keys(data[0]).forEach(key => { html += `<th>${key}</th>`; });
-                html += '</tr></thead><tbody>';
-                data.forEach(row => {
-                    if(row[Object.keys(row)[0]]) {
-                        html += '<tr>';
-                        Object.values(row).forEach(val => { html += `<td>${val}</td>`; });
-                        html += '</tr>';
+        let rawData = [];
+        let currentProjectData = [];
+        let displayUnit = 'h';
+        let currentAvgH = 0;
+        let processAverages = {};
+
+        // 1. 데이터 자동 로드 (한글 깨짐 방지 EUC-KR 적용)
+        window.onload = function() {
+            Papa.parse('data.csv', {
+                download: true,
+                header: true,
+                encoding: "EUC-KR",
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const parsed = results.data.map(c => ({
+                        date: c['날짜'] || c['date'],
+                        type: c['공정'] || c['type'] || '기타',
+                        client: c['업체명'] || c['client'],
+                        project: c['프로젝트'] || c['project'],
+                        h_reg: parseFloat(c['정시'] || c['h_reg']) || 0,
+                        h_over: parseFloat(c['연장'] || c['h_over']) || 0,
+                        cost: parseInt((c['발생비용'] || c['cost'] || '0').toString().replace(/[^0-9]/g, "")) || 0,
+                        worker: c['작업자'] || c['worker']
+                    })).filter(i => i.date);
+                    initData(parsed);
+                }
+            });
+        };
+
+        // --- V3.9.8 핵심 로직 (사장님 원본 그대로 유지) ---
+        function handleCalc(id) {
+            const input = document.getElementById(id);
+            let val = input.value.trim().replace(/,/g, '');
+            if (!val) { runAnalysis(); return; }
+            try {
+                const sanitized = val.replace(/[^0-9+\-*/().]/g, '');
+                if (sanitized) {
+                    const result = new Function(`return (${sanitized})`)();
+                    if (!isNaN(result) && isFinite(result)) {
+                        input.value = Math.floor(result).toLocaleString();
                     }
-                });
-                html += '</tbody></table>';
-                document.getElementById('table-container').innerHTML = html;
-            },
-            error: function() {
-                document.getElementById('table-container').innerHTML = "파일을 읽을 수 없습니다. data.csv 확인 요망";
+                }
+            } catch (e) {}
+            runAnalysis();
+        }
+
+        function normalizeProjName(name) { return name ? name.replace(/HKJ/g, "").replace(/[\s\-_]/g, "").toUpperCase() : ""; }
+
+        function extractCoreKey(name, clientName = "") {
+            const normalized = normalizeProjName(name);
+            if (clientName === "대한중전기") {
+                if (normalized.includes("COLUMN") || normalized.includes("직관")) return "DAEHAN_JIK_GROUP";
+                if (normalized.includes("DISCHARGE") || normalized.includes("곡관")) return "DAEHAN_GOK_GROUP";
+                return "DAEHAN_TECHNICAL_GROUP";
             }
-        });
+            const match = normalized.match(/[A-Z]+[0-9]+/);
+            return match ? match[0] : normalized.substring(0, 5);
+        }
+
+        function initData(data) {
+            rawData = data.map(item => {
+                const d = new Date(item.date);
+                return {
+                    ...item,
+                    year: d.getFullYear().toString(),
+                    month: (d.getMonth() + 1).toString(),
+                    dateObj: d,
+                    coreKey: extractCoreKey(item.project, item.client)
+                };
+            });
+            populateFilters();
+        }
+
+        function populateFilters() {
+            const yearSel = document.getElementById('selYear');
+            const years = [...new Set(rawData.map(i => i.year))].sort((a,b) => b-a);
+            yearSel.innerHTML = '<option value="">전체 연도</option>';
+            years.forEach(y => yearSel.add(new Option(y + '년', y)));
+            updateProjectList();
+        }
+
+        function updateProjectList() {
+            const year = document.getElementById('selYear').value;
+            const month = document.getElementById('selMonth').value;
+            const compSel = document.getElementById('selCompany');
+            const projSel = document.getElementById('selProject');
+
+            let filtered = rawData;
+            if (year) filtered = filtered.filter(i => i.year === year);
+            if (month) filtered = filtered.filter(i => i.month === month);
+
+            const companies = [...new Set(filtered.map(i => i.client))].sort();
+            compSel.innerHTML = '<option value="">업체 선택 (전체)</option>';
+            companies.forEach(c => compSel.add(new Option(c, c)));
+
+            const projectPairs = [...new Set(filtered.map(i => `${i.client}|${i.project}`))].sort();
+            projSel.innerHTML = `<option value="">프로젝트 선택 (${projectPairs.length})</option>`;
+            projectPairs.forEach(pair => {
+                const [cName, pName] = pair.split('|');
+                const option = new Option(`[${cName}] ${pName}`, pName);
+                option.dataset.client = cName;
+                projSel.add(option);
+            });
+        }
+
+        function runAnalysis() {
+            const projSel = document.getElementById('selProject');
+            const project = projSel.value;
+            if (!project) return;
+            const company = projSel.options[projSel.selectedIndex].dataset.client;
+
+            currentProjectData = rawData.filter(i => i.client === company && i.project === project).sort((a,b) => a.dateObj - b.dateObj);
+            
+            // 평균 계산 로직 및 카드 업데이트
+            let totalH = 0, totalC = 0;
+            currentProjectData.forEach(i => { totalH += (i.h_reg + i.h_over); totalC += i.cost; });
+            
+            document.getElementById('viewTotalHours').textContent = totalH.toLocaleString();
+            document.getElementById('viewTotalMD').textContent = (totalH / 8).toFixed(1);
+            document.getElementById('viewTotalCost').textContent = totalC.toLocaleString();
+            document.getElementById('viewPeriod').textContent = `${currentProjectData[0].date} ~ ${currentProjectData[currentProjectData.length-1].date}`;
+            
+            renderMatrix();
+            renderHistory();
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('analysisView').classList.remove('hidden');
+        }
+
+        function renderMatrix() {
+            const container = document.getElementById('matrixContainer');
+            const processes = [...new Set(currentProjectData.map(i => i.type))].sort();
+            const workers = [...new Set(currentProjectData.map(i => i.worker))].sort();
+            const weight = parseFloat(document.getElementById('inputWeight').value.replace(/,/g, '')) || 0;
+
+            let html = `<table class="matrix-table w-full"><thead><tr><th>공정</th>`;
+            workers.forEach(w => html += `<th>${w}</th>`);
+            html += `<th>합계</th>${weight > 0 ? '<th>단가</th>' : ''}</tr></thead><tbody>`;
+
+            processes.forEach(p => {
+                let rowSumH = 0, rowSumC = 0;
+                html += `<tr><td class="font-black bg-slate-50">${p}</td>`;
+                workers.forEach(w => {
+                    const logs = currentProjectData.filter(i => i.type === p && i.worker === w);
+                    const h = logs.reduce((a, b) => a + (b.h_reg + b.h_over), 0);
+                    const c = logs.reduce((a, b) => a + b.cost, 0);
+                    rowSumH += h; rowSumC += c;
+                    html += `<td class="${h > 0 ? 'cell-highlight font-bold' : ''}">${h > 0 ? (displayUnit==='h'?h:(h/8).toFixed(1)) : ''}</td>`;
+                });
+                html += `<td class="bg-slate-100 font-black">${rowSumH}h</td>`;
+                if(weight > 0) html += `<td class="text-blue-600 font-bold">₩${Math.floor(rowSumC/weight).toLocaleString()}</td>`;
+                html += `</tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function renderHistory() {
+            const body = document.getElementById('historyBody');
+            body.innerHTML = currentProjectData.map(row => `
+                <tr>
+                    <td>${row.date}</td><td class="font-bold">${row.worker}</td>
+                    <td>${row.type}</td><td>${row.h_reg}h</td>
+                    <td class="text-amber-600">${row.h_over}h</td>
+                    <td class="font-black">${row.h_reg+row.h_over}h</td>
+                    <td class="text-emerald-600 font-bold">₩${row.cost.toLocaleString()}</td>
+                </tr>`).join('');
+        }
+
+        function toggleUnit(unit) {
+            displayUnit = unit;
+            document.getElementById('btnUnitH').className = unit === 'h' ? 'px-6 py-2 text-xs font-black rounded-lg bg-white shadow-sm' : 'px-6 py-2 text-xs font-black rounded-lg text-slate-500';
+            document.getElementById('btnUnitMD').className = unit === 'md' ? 'px-6 py-2 text-xs font-black rounded-lg bg-white shadow-sm' : 'px-6 py-2 text-xs font-black rounded-lg text-slate-500';
+            renderMatrix();
+        }
     </script>
 </body>
 </html>
