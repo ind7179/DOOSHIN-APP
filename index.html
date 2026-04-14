@@ -6,28 +6,26 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 15px; background-color: #f4f4f4; }
-        table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
         th { background-color: #1e293b; color: white; }
         .logo { display: block; margin: 0 auto 10px; width: 100px; }
     </style>
 </head>
 <body>
     <h2 style="text-align:center;">현장 공수 현황</h2>
-    <div id="table-container">데이터를 확인 중입니다...</div>
+    <div id="table-container">데이터를 불러오는 중...</div>
 
     <script>
-        // 가장 단순하게 'data.csv' 파일만 가져오도록 고쳤습니다.
         Papa.parse('data.csv', {
             download: true,
             header: true,
+            encoding: "EUC-KR", // 사장님, 여기가 핵심입니다! 한글 안 깨지게 잡아주는 설정이에요.
             complete: function(results) {
                 let data = results.data;
                 let html = '<table><thead><tr>';
-                // 제목 만들기
                 Object.keys(data[0]).forEach(key => { html += `<th>${key}</th>`; });
                 html += '</tr></thead><tbody>';
-                // 내용 넣기
                 data.forEach(row => {
                     if(row[Object.keys(row)[0]]) {
                         html += '<tr>';
@@ -39,7 +37,7 @@
                 document.getElementById('table-container').innerHTML = html;
             },
             error: function() {
-                document.getElementById('table-container').innerHTML = "data.csv 파일을 찾을 수 없습니다. 깃허브에 파일이 있는지 확인해주세요!";
+                document.getElementById('table-container').innerHTML = "파일을 읽을 수 없습니다. data.csv 확인 요망";
             }
         });
     </script>
