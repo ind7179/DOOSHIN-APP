@@ -2,38 +2,32 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>(주)두신이엔지 공수분석</title>
+    <title>두신이엔지 공수분석</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 15px; background-color: #f8f9fa; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: center; font-size: 14px; }
-        th { background-color: #1e293b; color: white; font-weight: bold; }
-        tr:nth-child(even) { background-color: #fcfcfc; }
-        .logo { display: block; margin: 10px auto; width: 120px; }
+        body { font-family: sans-serif; padding: 15px; background-color: #f4f4f4; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #1e293b; color: white; }
+        .logo { display: block; margin: 0 auto 10px; width: 100px; }
     </style>
 </head>
 <body>
-    <img src="https://raw.githubusercontent.com/ind7179/DOOSHIN-APP/main/dooshin-logo.png" class="logo">
-    <h2 style="text-align:center; color:#333;">현장 공수 현황</h2>
-    <div id="table-container">데이터를 불러오는 중...</div>
+    <h2 style="text-align:center;">현장 공수 현황</h2>
+    <div id="table-container">데이터를 확인 중입니다...</div>
 
     <script>
-        // 파일 이름을 'data.csv'로 고정했습니다.
-        const fileName = 'data.csv?v=' + new Date().getTime(); // v=시간을 붙여서 '무조건 최신'으로 가져오게 함
-
-        Papa.parse(fileName, {
+        // 가장 단순하게 'data.csv' 파일만 가져오도록 고쳤습니다.
+        Papa.parse('data.csv', {
             download: true,
             header: true,
             complete: function(results) {
                 let data = results.data;
-                if (!data || data.length === 0) {
-                    document.getElementById('table-container').innerHTML = "표시할 데이터가 없습니다.";
-                    return;
-                }
                 let html = '<table><thead><tr>';
+                // 제목 만들기
                 Object.keys(data[0]).forEach(key => { html += `<th>${key}</th>`; });
                 html += '</tr></thead><tbody>';
+                // 내용 넣기
                 data.forEach(row => {
                     if(row[Object.keys(row)[0]]) {
                         html += '<tr>';
@@ -45,7 +39,7 @@
                 document.getElementById('table-container').innerHTML = html;
             },
             error: function() {
-                document.getElementById('table-container').innerHTML = "data.csv 파일을 찾을 수 없습니다.";
+                document.getElementById('table-container').innerHTML = "data.csv 파일을 찾을 수 없습니다. 깃허브에 파일이 있는지 확인해주세요!";
             }
         });
     </script>
