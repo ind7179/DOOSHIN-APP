@@ -37,12 +37,6 @@
             <div id="avgHintContainer" class="hidden flex items-center bg-amber-500/10 border border-amber-500/30 px-4 py-2 rounded-xl">
                 <span class="text-amber-500 text-sm font-black italic" id="avgHintText"></span>
             </div>
-            <div class="flex items-center gap-4 ml-auto">
-                <input type="file" id="csvFile" accept=".csv" class="hidden">
-                <button onclick="document.getElementById('csvFile').click()" class="bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg">
-                    📁 엑셀(CSV) 업로드
-                </button>
-            </div>
         </div>
     </nav>
 
@@ -333,20 +327,6 @@
             displayUnit = unit; document.getElementById('btnUnitH').className = unit === 'h' ? 'px-6 py-2.5 text-xs font-black rounded-lg bg-white shadow-sm transition-all' : 'px-6 py-2.5 text-xs font-black rounded-lg text-slate-500 transition-all'; document.getElementById('btnUnitMD').className = unit === 'md' ? 'px-6 py-2.5 text-xs font-black rounded-lg bg-white shadow-sm transition-all ml-1' : 'px-6 py-2.5 text-xs font-black rounded-lg text-slate-500 transition-all ml-1';
             if (currentProjectData.length > 0) runAnalysis();
         }
-
-        document.getElementById('csvFile').addEventListener('change', function(e) {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const rows = evt.target.result.split(/\r?\n/).slice(1);
-                const parsed = rows.map(r => {
-                    const c = r.split(','); if (c.length < 7) return null;
-                    return { date: c[0]?.trim(), type: c[1]?.trim() || '기타', client: c[2]?.trim(), project: c[3]?.trim(), h_reg: parseFloat(c[4]) || 0, h_over: parseFloat(c[5]) || 0, cost: parseInt(c[6]?.replace(/[^0-9]/g, "")) || 0, worker: c[7]?.trim() };
-                }).filter(i => i !== null && i.date);
-                initData(parsed); alert('엑셀 파일 로딩 완료!');
-            };
-            reader.readAsText(file, "EUC-KR");
-        });
 
         window.onload = function() {
             fetch('data.csv?v=' + new Date().getTime())
