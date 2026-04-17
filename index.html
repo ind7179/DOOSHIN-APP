@@ -142,10 +142,13 @@
             let val = input.value.trim().replace(/,/g, ''); 
             if (!val) { runAnalysis(); return; }
             try {
-                // 엑셀처럼 '='로 시작하면 기호를 제거하고 계산식으로 인식하도록 처리
                 if (val.startsWith('=')) {
                     val = val.substring(1);
                 }
+                
+                // 모바일 키보드용 곱하기(×), 나누기(÷) 기호를 컴퓨터 기호로 변환
+                val = val.replace(/×/g, '*').replace(/÷/g, '/');
+                
                 const sanitized = val.replace(/[^0-9+\-*/().]/g, '');
                 if (sanitized) {
                     const result = new Function(`return (${sanitized})`)();
